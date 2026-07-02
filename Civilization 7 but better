@@ -1,0 +1,270 @@
+import tkinter as tk
+
+row_number = 5
+col_number = 5
+
+class Cell:
+    CEL_instance_list=[[None for a in range(col_number)] for b in range(row_number)]
+
+    terrain=None
+    country=None
+    city=False
+
+    def __init__(self, window, x_coo, y_coo, color):
+        self.x_coo=x_coo
+        self.y_coo=y_coo
+        self.color=color
+        
+        self.frame=tk.Frame(window, bg=self.color)
+        self.frame.grid(row=x_coo, column=y_coo, padx=5, pady=5, sticky="nswe")
+        pass
+
+    def __str__(self):
+        return f"This is the cell {self.x_coo},{self.y_coo}"
+
+    def coordinates(self):
+        print(f"x = {self.x_coo} y = {self.y_coo}")
+        pass
+
+    def change_terrain(self, terrain):
+        self.terrain=terrain
+        pass
+
+    def change_country(self, country):
+        self.country=country
+        pass
+
+    def change_city(self, city):
+        self.city=city
+        pass
+    
+    def change_color(self,color):
+        self.frame.configure(bg=color)
+
+
+    pass
+
+class Unit:
+
+    UNI_instance_list=[]
+
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        return f"########\nThis is a {self.unit_type}.\nHe's located in the cell {self.x,self.y}\nHis name is {self.name}.\nHP : {self.Unit_HP} / DMG : {self.Unit_DMG} / DEF : {self.Unit_DEF}\n########"
+        pass
+
+    def change_name(self, name):
+        self.name=name
+    
+    def spawn_unit(event, unit_type):
+        if check_click_position(event)==False:
+            return
+        
+        else:
+            x,y = check_click_position(event)
+            print(f"Clicked cell ({x},{y})")
+
+            if check_unit_on_cell(x, y)==True:
+                return
+            else:
+                if unit_type=="Warrior":
+                    Warrior(x, y)
+                elif unit_type=="Archer":
+                    Archer(x,y)
+
+    def despawn_unit(event):
+        if check_click_position(event)==False:
+            return
+        
+        else:
+            x,y = check_click_position(event)
+            print(f"Clicked ({x},{y})")
+
+            if check_unit_on_cell(x, y)==True:
+                Cell.CEL_instance_list[x][y].frame.winfo_children()[0].destroy()        # Destroys the label
+                for i in range(len(Unit.UNI_instance_list)):
+                    if (Unit.UNI_instance_list[i].x, Unit.UNI_instance_list[i].y) == check_click_position(event):
+                        unit_to_remove = Unit.UNI_instance_list[i]
+                        Unit.UNI_instance_list.remove(unit_to_remove)
+                        print("Unit removed")
+                        return
+            else:
+                print("No unit to delete")
+        pass
+
+class Warrior(Unit):
+    
+    Unit_HP = 3
+    Unit_DMG = 2
+    Unit_DEF = 1
+
+    WAR_instance_list=[]
+
+    def __init__(self, x, y, name="Kevin", unit_type="Warrior"):
+        self.x=x
+        self.y=y
+        window=Cell.CEL_instance_list[x][y].frame
+
+        self.label = tk.Label(window, bg="blue", text="Guerrier")
+        self.label.pack(fill="both", expand=True, padx=10, pady=10)
+        Warrior.WAR_instance_list.append(self)
+        Unit.UNI_instance_list.append(self)
+        
+        self.unit_type = unit_type
+        self.name = name
+        
+    def __str__(self):
+        return super().__str__()
+
+    def spawn_warrior(event):
+        if check_click_position(event)==False:
+            return
+        
+        else:
+            x,y = check_click_position(event)
+            print(f"Clicked cell ({x},{y})")
+
+            if check_unit_on_cell(x, y)==True:
+                return
+            else:
+                Warrior(x, y)
+
+class Archer(Unit):
+    
+    Unit_HP = 3
+    Unit_DMG = 2
+    Unit_DEF = 0
+
+    ARC_instance_list=[]
+
+    def __init__(self, x, y, name="Nathan", unit_type="Archer"):
+        self.x=x
+        self.y=y
+        window=Cell.CEL_instance_list[x][y].frame
+
+        self.label = tk.Label(window, bg="green", text="Archer")
+        self.label.pack(fill="both", expand=True, padx=10, pady=10)
+        Archer.ARC_instance_list.append(self)
+        Unit.UNI_instance_list.append(self)
+        
+        self.unit_type = unit_type
+        self.name = name
+        
+    def __str__(self):
+        return super().__str__()
+
+    def spawn_archer(event):
+        if check_click_position(event)==False:
+            return
+        
+        else:
+            x,y = check_click_position(event)
+            print(f"Clicked cell ({x},{y})")
+
+            if check_unit_on_cell(x, y)==True:
+                return
+            else:
+                Archer(x, y)
+
+#------------------------------------------
+
+def check_click_position(event):
+    for x in range(col_number):
+        for y in range(row_number):
+
+            current_cell=Cell.CEL_instance_list[x][y].frame
+
+            current_cell_x=current_cell.winfo_x()
+            current_cell_y=current_cell.winfo_y()
+
+            current_cell_width=current_cell.winfo_width()
+            current_cell_height=current_cell.winfo_height()
+
+            fen_x=fen.winfo_x()
+            fen_y=fen.winfo_y()
+
+            mouse_x=event.x_root - fen_x - 8
+            mouse_y=event.y_root - fen_y - 32
+
+            
+
+            if current_cell_x <= mouse_x <= current_cell_x+current_cell_width and current_cell_y <= mouse_y <= current_cell_y+current_cell_height:
+                return x,y
+            
+    print("No cell clicked")
+    return False
+
+def check_unit_on_cell(x, y):
+    if len(Cell.CEL_instance_list[x][y].frame.winfo_children())==0:
+        return False
+    else:
+        print('A unit is on this tile')
+        return True
+
+def get_cell_stat(event):
+    if check_click_position(event)==False:
+        return
+        
+    else:
+        x,y = check_click_position(event)
+        if check_unit_on_cell(x,y)==True:
+            for i in range(len(Unit.UNI_instance_list)):
+                uni_x_pos=Unit.UNI_instance_list[i].x
+                uni_y_pos=Unit.UNI_instance_list[i].y
+                if (uni_x_pos, uni_y_pos) == check_click_position(event):
+                    print(Unit.UNI_instance_list[i])
+                    return
+        else:
+            print("No unit to show stat")
+        return
+
+#-----------------------------------------------------
+
+fen=tk.Tk()
+fen.title("Grille")
+fen.geometry("700x500+-5+0")
+fen.configure(bg="#7C7C7C",padx=5,pady=5)
+
+
+
+
+def menu_warrior_option(popup_event):
+    Unit.spawn_unit(popup_event, "Warrior")
+def menu_archer_option(popup_event):
+    Unit.spawn_unit(popup_event, "Archer")
+def create_popup_menu(event):
+    if check_click_position(event)==False:
+        return
+
+    global popup_event
+    popup_event = event
+    popup_menu.tk_popup(event.x_root, event.y_root)
+    pass
+
+popup_menu = tk.Menu(fen, tearoff=0)
+spawning_menu = tk.Menu(popup_menu, tearoff=0)
+popup_menu.add_cascade(label="Spawn a unit", menu = spawning_menu)
+
+spawning_menu.add_command(label="Warrior", command = lambda : menu_warrior_option(popup_event))
+spawning_menu.add_command(label="Archer", command = lambda : menu_archer_option(popup_event))
+popup_menu.add_command(label="Despawn unit", command = lambda : Unit.despawn_unit(popup_event))
+popup_menu.add_command(label="Show unit stat", command = lambda : get_cell_stat(popup_event))
+
+
+
+for i in range (row_number):
+    fen.grid_rowconfigure(i, weight=1,uniform=1)
+for i in range(col_number):
+    fen.grid_columnconfigure(i, weight=2,uniform=1)
+    
+
+for i in range(row_number):
+    for j in range(col_number):
+        Cell.CEL_instance_list[j][i]=Cell(window=fen, x_coo=i, y_coo=j, color="red")
+        
+
+fen.bind("<Button-3>",create_popup_menu)
+
+fen.mainloop()
