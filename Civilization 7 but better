@@ -48,7 +48,17 @@ class Unit:
 
     UNI_instance_list=[]
 
-    def __init__(self):
+    def __init__(self, x, y, unit_type, name):
+        self.x=x
+        self.y=y
+        self.unit_type = unit_type
+        self.name = name
+        window=Cell.CEL_instance_list[x][y].frame
+        
+        self.label = tk.Label(window, bg="blue", text=str(unit_type))
+        self.label.pack(fill="both", expand=True, padx=10, pady=10)
+        Unit.UNI_instance_list.append(self)
+        
         pass
 
     def __str__(self):
@@ -103,18 +113,10 @@ class Warrior(Unit):
     WAR_instance_list=[]
 
     def __init__(self, x, y, name="Kevin", unit_type="Warrior"):
-        self.x=x
-        self.y=y
-        window=Cell.CEL_instance_list[x][y].frame
-
-        self.label = tk.Label(window, bg="blue", text="Guerrier")
+        super().__init__(x, y, unit_type, name)
+        self.label.configure(bg="Blue")
         self.label.pack(fill="both", expand=True, padx=10, pady=10)
         Warrior.WAR_instance_list.append(self)
-        Unit.UNI_instance_list.append(self)
-        
-        self.unit_type = unit_type
-        self.name = name
-        
     def __str__(self):
         return super().__str__()
 
@@ -140,17 +142,10 @@ class Archer(Unit):
     ARC_instance_list=[]
 
     def __init__(self, x, y, name="Nathan", unit_type="Archer"):
-        self.x=x
-        self.y=y
-        window=Cell.CEL_instance_list[x][y].frame
-
-        self.label = tk.Label(window, bg="green", text="Archer")
+        super().__init__(x, y, unit_type, name)
+        self.label.configure(bg="Green")
         self.label.pack(fill="both", expand=True, padx=10, pady=10)
         Archer.ARC_instance_list.append(self)
-        Unit.UNI_instance_list.append(self)
-        
-        self.unit_type = unit_type
-        self.name = name
         
     def __str__(self):
         return super().__str__()
@@ -220,6 +215,7 @@ def get_cell_stat(event):
             print("No unit to show stat")
         return
 
+
 #-----------------------------------------------------
 
 fen=tk.Tk()
@@ -229,11 +225,12 @@ fen.configure(bg="#7C7C7C",padx=5,pady=5)
 
 
 
-
-def menu_warrior_option(popup_event):
+def menu_warrior_spawn_option(popup_event):
     Unit.spawn_unit(popup_event, "Warrior")
-def menu_archer_option(popup_event):
+
+def menu_archer_spawn_option(popup_event):
     Unit.spawn_unit(popup_event, "Archer")
+
 def create_popup_menu(event):
     if check_click_position(event)==False:
         return
@@ -243,14 +240,48 @@ def create_popup_menu(event):
     popup_menu.tk_popup(event.x_root, event.y_root)
     pass
 
+def menu_change_name_option(popup_event):
+    
+    def close_popup_window(entry, window):
+        global entry_text
+        entry_text=entry.get()
+        window.destroy()
+        if len(entry_text)==0:
+            print("No new name")
+
+        else:
+            print(f"New name is '{entry_text}'")
+
+            for i in range(len(Unit.UNI_instance_list)):
+                print("Too soon")
+                if (Unit.UNI_instance_list[i].x, Unit.UNI_instance_list[i].y) == check_click_position(popup_event):
+                    print("Got a match")
+                    Unit.UNI_instance_list[i].change_name(entry_text)
+                    return
+
+    toplevel_popup = tk.Toplevel(bg="#9C9C9C")
+    toplevel_popup.resizable(False, False)
+    toplevel_popup.geometry('+0+0')
+    toplevel_popup.title("Popup")
+
+    new_name_entry = tk.Entry(toplevel_popup, bg="#C4C4C4", highlightbackground="black", highlightthickness=2, highlightcolor="black", font="TkDefaultFont 20")
+    new_name_entry.pack(expand=True, fill="both", padx=5, pady=5)
+
+    close_button=tk.Button(toplevel_popup, text="Confirm", command = lambda:close_popup_window(entry=new_name_entry, window=toplevel_popup))
+    close_button.pack(fill="both")
+
 popup_menu = tk.Menu(fen, tearoff=0)
 spawning_menu = tk.Menu(popup_menu, tearoff=0)
 popup_menu.add_cascade(label="Spawn a unit", menu = spawning_menu)
 
-spawning_menu.add_command(label="Warrior", command = lambda : menu_warrior_option(popup_event))
-spawning_menu.add_command(label="Archer", command = lambda : menu_archer_option(popup_event))
+spawning_menu.add_command(label="Warrior", command = lambda : menu_warrior_spawn_option(popup_event))
+spawning_menu.add_command(label="Archer", command = lambda : menu_archer_spawn_option(popup_event))
+popup_menu.add_separator()
 popup_menu.add_command(label="Despawn unit", command = lambda : Unit.despawn_unit(popup_event))
-popup_menu.add_command(label="Show unit stat", command = lambda : get_cell_stat(popup_event))
+popup_menu.add_separator()
+popup_menu.add_command(label="Se unit stats", command = lambda : get_cell_stat(popup_event))
+popup_menu.add_command(label="Change unit name", command = lambda : menu_change_name_option(popup_event))
+
 
 
 
