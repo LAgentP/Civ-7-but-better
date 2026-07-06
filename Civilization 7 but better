@@ -1,8 +1,11 @@
 import tkinter as tk
 
+fen=tk.Tk()
+fen.title("Grille")
+fen.geometry("700x500+-5+0")
+fen.configure(bg="#7C7C7C",padx=5,pady=5)
 row_number = 5
 col_number = 5
-
 class Cell:
     CEL_instance_list=[[None for a in range(col_number)] for b in range(row_number)]
 
@@ -21,6 +24,23 @@ class Cell:
 
     def __str__(self):
         return f"This is the cell {self.x_coo},{self.y_coo}"
+    
+    def create_grid():
+        for i in range(row_number):
+            for j in range(col_number):
+                cell=Cell(window=fen, x_coo=i, y_coo=j, color="red")
+                Cell.CEL_instance_list[j][i]=cell
+
+        pass
+    
+    def check_unit(x=None, y=None, event=None):
+        if event!=None:
+            x, y = check_click_position(event)
+        if len(Cell.CEL_instance_list[x][y].frame.winfo_children())==0:
+            return False
+        else:
+            print('A unit is on this tile')
+            return True
 
     def coordinates(self):
         print(f"x = {self.x_coo} y = {self.y_coo}")
@@ -40,6 +60,66 @@ class Cell:
     
     def change_color(self,color):
         self.frame.configure(bg=color)
+
+    def get_cell_stat(event):
+        if check_click_position(event)==False:
+            return
+        
+        else:
+            if Cell.check_unit(event=event)==True:
+                for i in range(len(Unit.UNI_instance_list)):
+                    uni_x_pos=Unit.UNI_instance_list[i].x
+                    uni_y_pos=Unit.UNI_instance_list[i].y
+                    if (uni_x_pos, uni_y_pos) == check_click_position(event):
+                        print(Unit.UNI_instance_list[i])
+                        return
+            else:
+                print("No unit to show stat")
+            return
+
+
+
+    pass
+
+
+class Menu:
+    MEN_instance_list=[]
+
+    def __init__(self, window):
+        self.main_menu=tk.Menu(window, tearoff=0)
+        self.MEN_instance_list.append(self.main_menu)
+
+        Menu.create_popup_menu(self)
+        
+    def create_popup_menu(self):
+        Menu.add_submenus(self, self.main_menu)
+        Menu.add_opt(self)
+
+    def add_submenus(self, submenu):
+        print("submenu =", submenu)
+        self.submenu=submenu
+        self.submenu = tk.Menu(self.main_menu, tearoff=0)
+        self.MEN_instance_list.append(self.submenu)
+
+        self.main_menu.add_cascade(label="Spawn a unit", menu = self.submenu)
+        self.main_menu.add_separator()
+    
+    def add_opt(self):
+
+        self.submenu.add_command(label="Warrior", command = lambda : menu_warrior_spawn_option(popup_event))
+        self.submenu.add_command(label="Archer", command = lambda : menu_archer_spawn_option(popup_event))
+        self.main_menu.add_command(label="Despawn unit", command = lambda : Unit.despawn_unit(popup_event))
+        self.main_menu.add_command(label="Se unit stats", command = lambda : Cell.get_cell_stat(popup_event))
+        self.main_menu.add_command(label="Change unit name", command = lambda : menu_change_name_option(popup_event))
+
+    def show_click_menu(event):
+        if check_click_position(event)==False:
+            return
+
+        global popup_event
+        popup_event = event
+        Menu.MEN_instance_list[0].tk_popup(event.x_root, event.y_root)
+        pass
 
 
     pass
@@ -76,7 +156,7 @@ class Unit:
             x,y = check_click_position(event)
             print(f"Clicked cell ({x},{y})")
 
-            if check_unit_on_cell(x, y)==True:
+            if Cell.check_unit(x, y)==True:
                 return
             else:
                 if unit_type=="Warrior":
@@ -92,7 +172,7 @@ class Unit:
             x,y = check_click_position(event)
             print(f"Clicked ({x},{y})")
 
-            if check_unit_on_cell(x, y)==True:
+            if Cell.check_unit(x, y)==True:
                 Cell.CEL_instance_list[x][y].frame.winfo_children()[0].destroy()        # Destroys the label
                 for i in range(len(Unit.UNI_instance_list)):
                     if (Unit.UNI_instance_list[i].x, Unit.UNI_instance_list[i].y) == check_click_position(event):
@@ -105,14 +185,13 @@ class Unit:
         pass
 
 class Warrior(Unit):
-    
     Unit_HP = 3
     Unit_DMG = 2
     Unit_DEF = 1
 
     WAR_instance_list=[]
 
-    def __init__(self, x, y, name="Kevin", unit_type="Warrior"):
+    def __init__(self, x, y, name="Warrior", unit_type="Warrior"):
         super().__init__(x, y, unit_type, name)
         self.label.configure(bg="Blue")
         self.label.pack(fill="both", expand=True, padx=10, pady=10)
@@ -128,7 +207,7 @@ class Warrior(Unit):
             x,y = check_click_position(event)
             print(f"Clicked cell ({x},{y})")
 
-            if check_unit_on_cell(x, y)==True:
+            if Cell.check_unit(x, y)==True:
                 return
             else:
                 Warrior(x, y)
@@ -141,7 +220,7 @@ class Archer(Unit):
 
     ARC_instance_list=[]
 
-    def __init__(self, x, y, name="Nathan", unit_type="Archer"):
+    def __init__(self, x, y, name="Archer", unit_type="Archer"):
         super().__init__(x, y, unit_type, name)
         self.label.configure(bg="Green")
         self.label.pack(fill="both", expand=True, padx=10, pady=10)
@@ -158,7 +237,7 @@ class Archer(Unit):
             x,y = check_click_position(event)
             print(f"Clicked cell ({x},{y})")
 
-            if check_unit_on_cell(x, y)==True:
+            if Cell.check_unit(x, y)==True:
                 return
             else:
                 Archer(x, y)
@@ -191,37 +270,9 @@ def check_click_position(event):
     print("No cell clicked")
     return False
 
-def check_unit_on_cell(x, y):
-    if len(Cell.CEL_instance_list[x][y].frame.winfo_children())==0:
-        return False
-    else:
-        print('A unit is on this tile')
-        return True
-
-def get_cell_stat(event):
-    if check_click_position(event)==False:
-        return
-        
-    else:
-        x,y = check_click_position(event)
-        if check_unit_on_cell(x,y)==True:
-            for i in range(len(Unit.UNI_instance_list)):
-                uni_x_pos=Unit.UNI_instance_list[i].x
-                uni_y_pos=Unit.UNI_instance_list[i].y
-                if (uni_x_pos, uni_y_pos) == check_click_position(event):
-                    print(Unit.UNI_instance_list[i])
-                    return
-        else:
-            print("No unit to show stat")
-        return
-
 
 #-----------------------------------------------------
 
-fen=tk.Tk()
-fen.title("Grille")
-fen.geometry("700x500+-5+0")
-fen.configure(bg="#7C7C7C",padx=5,pady=5)
 
 
 
@@ -231,17 +282,12 @@ def menu_warrior_spawn_option(popup_event):
 def menu_archer_spawn_option(popup_event):
     Unit.spawn_unit(popup_event, "Archer")
 
-def create_popup_menu(event):
-    if check_click_position(event)==False:
+def menu_change_name_option(popup_event):
+    if Cell.check_unit(event=popup_event)==False:
+        print("No unit to rename here")
         return
 
-    global popup_event
-    popup_event = event
-    popup_menu.tk_popup(event.x_root, event.y_root)
-    pass
 
-def menu_change_name_option(popup_event):
-    
     def close_popup_window(entry, window):
         global entry_text
         entry_text=entry.get()
@@ -253,7 +299,6 @@ def menu_change_name_option(popup_event):
             print(f"New name is '{entry_text}'")
 
             for i in range(len(Unit.UNI_instance_list)):
-                print("Too soon")
                 if (Unit.UNI_instance_list[i].x, Unit.UNI_instance_list[i].y) == check_click_position(popup_event):
                     print("Got a match")
                     Unit.UNI_instance_list[i].change_name(entry_text)
@@ -270,17 +315,6 @@ def menu_change_name_option(popup_event):
     close_button=tk.Button(toplevel_popup, text="Confirm", command = lambda:close_popup_window(entry=new_name_entry, window=toplevel_popup))
     close_button.pack(fill="both")
 
-popup_menu = tk.Menu(fen, tearoff=0)
-spawning_menu = tk.Menu(popup_menu, tearoff=0)
-popup_menu.add_cascade(label="Spawn a unit", menu = spawning_menu)
-
-spawning_menu.add_command(label="Warrior", command = lambda : menu_warrior_spawn_option(popup_event))
-spawning_menu.add_command(label="Archer", command = lambda : menu_archer_spawn_option(popup_event))
-popup_menu.add_separator()
-popup_menu.add_command(label="Despawn unit", command = lambda : Unit.despawn_unit(popup_event))
-popup_menu.add_separator()
-popup_menu.add_command(label="Se unit stats", command = lambda : get_cell_stat(popup_event))
-popup_menu.add_command(label="Change unit name", command = lambda : menu_change_name_option(popup_event))
 
 
 
@@ -290,12 +324,9 @@ for i in range (row_number):
 for i in range(col_number):
     fen.grid_columnconfigure(i, weight=2,uniform=1)
     
+Cell.create_grid()
+Menu(fen)
 
-for i in range(row_number):
-    for j in range(col_number):
-        Cell.CEL_instance_list[j][i]=Cell(window=fen, x_coo=i, y_coo=j, color="red")
-        
-
-fen.bind("<Button-3>",create_popup_menu)
+fen.bind("<Button-3>",Menu.show_click_menu)
 
 fen.mainloop()
