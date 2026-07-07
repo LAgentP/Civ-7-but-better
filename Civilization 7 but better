@@ -6,8 +6,16 @@ fen.geometry("700x500+-5+0")
 fen.configure(bg="#7C7C7C",padx=5,pady=5)
 row_number = 5
 col_number = 5
+
+unit_type_list=["Warrior", "Archer", "Scout"]
+unit_type_color={
+    "Warrior" : "blue", 
+    "Archer" : "Green"
+    }
+
+
 class Cell:
-    CEL_instance_list=[[None for a in range(col_number)] for b in range(row_number)]
+    instance_list=[[None for a in range(col_number)] for b in range(row_number)]
 
     terrain=None
     country=None
@@ -20,32 +28,22 @@ class Cell:
         
         self.frame=tk.Frame(window, bg=self.color)
         self.frame.grid(row=x_coo, column=y_coo, padx=5, pady=5, sticky="nswe")
+        
+        self.unit_on_cell=[]
+
         pass
 
     def __str__(self):
-        return f"This is the cell {self.x_coo},{self.y_coo}"
+        return f"This is the cell {self.x_coo},{self.y_coo}. There is the unit {self.unit_on_cell} here."
     
     def create_grid():
         for i in range(row_number):
             for j in range(col_number):
                 cell=Cell(window=fen, x_coo=i, y_coo=j, color="red")
-                Cell.CEL_instance_list[j][i]=cell
+                Cell.instance_list[j][i]=cell
 
         pass
     
-    def check_unit(x=None, y=None, event=None):
-        if event!=None:
-            x, y = check_click_position(event)
-        if len(Cell.CEL_instance_list[x][y].frame.winfo_children())==0:
-            return False
-        else:
-            print('A unit is on this tile')
-            return True
-
-    def coordinates(self):
-        print(f"x = {self.x_coo} y = {self.y_coo}")
-        pass
-
     def change_terrain(self, terrain):
         self.terrain=terrain
         pass
@@ -61,33 +59,71 @@ class Cell:
     def change_color(self,color):
         self.frame.configure(bg=color)
 
+    def update_unit_on_cell(self, unit, add):
+        if add==True:
+            self.unit_on_cell.append(unit)
+        if add==False:
+            self.unit_on_cell.remove(unit)
+        print(self.unit_on_cell)
+        
+
+    def check_unit(x=None, y=None, event=None):
+        if event!=None:
+            x, y = Cell.check_click_position(event)
+        if len(Cell.instance_list[x][y].frame.winfo_children())==0:
+            return False
+        else:
+            print('A unit is on this tile')
+            return True
+        
+    def check_click_position(event):
+        for x in range(col_number):
+            for y in range(row_number):
+
+                current_cell=Cell.instance_list[x][y].frame
+
+                current_cell_x=current_cell.winfo_x()
+                current_cell_y=current_cell.winfo_y()
+
+                current_cell_width=current_cell.winfo_width()
+                current_cell_height=current_cell.winfo_height()
+
+                fen_x=fen.winfo_x()
+                fen_y=fen.winfo_y()
+
+                mouse_x=event.x_root - fen_x - 8
+                mouse_y=event.y_root - fen_y - 32
+
+            
+
+                if current_cell_x <= mouse_x <= current_cell_x+current_cell_width and current_cell_y <= mouse_y <= current_cell_y+current_cell_height:
+                    return x,y
+            
+        print("No cell clicked")
+        return False
+
     def get_cell_stat(event):
-        if check_click_position(event)==False:
+        if Cell.check_click_position(event)==False:
             return
         
         else:
             if Cell.check_unit(event=event)==True:
-                for i in range(len(Unit.UNI_instance_list)):
-                    uni_x_pos=Unit.UNI_instance_list[i].x
-                    uni_y_pos=Unit.UNI_instance_list[i].y
-                    if (uni_x_pos, uni_y_pos) == check_click_position(event):
-                        print(Unit.UNI_instance_list[i])
+                for i in range(len(Unit.instance_list)):
+                    uni_x_pos=Unit.instance_list[i].x
+                    uni_y_pos=Unit.instance_list[i].y
+                    if (uni_x_pos, uni_y_pos) == Cell.check_click_position(event):
+                        print(Unit.instance_list[i])
                         return
             else:
                 print("No unit to show stat")
             return
 
-
-
-    pass
-
-
 class Menu:
-    MEN_instance_list=[]
+    instance_list=[]
 
     def __init__(self, window):
         self.main_menu=tk.Menu(window, tearoff=0)
-        self.MEN_instance_list.append(self.main_menu)
+        self.instance_list.append(self.main_menu)
 
         Menu.create_popup_menu(self)
         
@@ -96,197 +132,48 @@ class Menu:
         Menu.add_opt(self)
 
     def add_submenus(self, submenu):
-        print("submenu =", submenu)
         self.submenu=submenu
         self.submenu = tk.Menu(self.main_menu, tearoff=0)
-        self.MEN_instance_list.append(self.submenu)
+        self.instance_list.append(self.submenu)
 
         self.main_menu.add_cascade(label="Spawn a unit", menu = self.submenu)
         self.main_menu.add_separator()
     
     def add_opt(self):
-
-        self.submenu.add_command(label="Warrior", command = lambda : menu_warrior_spawn_option(popup_event))
-        self.submenu.add_command(label="Archer", command = lambda : menu_archer_spawn_option(popup_event))
+        
+        for i in unit_type_list:
+            self.submenu.add_command(label=i, command = lambda i=i : Unit.spawn_unit(popup_event, i))
+            
+        self.main_menu.add_command(label="Change unit name", command = lambda : Menu.menu_change_name_option(popup_event))
         self.main_menu.add_command(label="Despawn unit", command = lambda : Unit.despawn_unit(popup_event))
         self.main_menu.add_command(label="Se unit stats", command = lambda : Cell.get_cell_stat(popup_event))
-        self.main_menu.add_command(label="Change unit name", command = lambda : menu_change_name_option(popup_event))
 
     def show_click_menu(event):
-        if check_click_position(event)==False:
+        if Cell.check_click_position(event)==False:
             return
 
         global popup_event
         popup_event = event
-        Menu.MEN_instance_list[0].tk_popup(event.x_root, event.y_root)
+        Menu.instance_list[0].tk_popup(event.x_root, event.y_root)
         pass
 
-
-    pass
-
-class Unit:
-
-    UNI_instance_list=[]
-
-    def __init__(self, x, y, unit_type, name):
-        self.x=x
-        self.y=y
-        self.unit_type = unit_type
-        self.name = name
-        window=Cell.CEL_instance_list[x][y].frame
-        
-        self.label = tk.Label(window, bg="blue", text=str(unit_type))
-        self.label.pack(fill="both", expand=True, padx=10, pady=10)
-        Unit.UNI_instance_list.append(self)
-        
-        pass
-
-    def __str__(self):
-        return f"########\nThis is a {self.unit_type}.\nHe's located in the cell {self.x,self.y}\nHis name is {self.name}.\nHP : {self.Unit_HP} / DMG : {self.Unit_DMG} / DEF : {self.Unit_DEF}\n########"
-        pass
-
-    def change_name(self, name):
-        self.name=name
-    
-    def spawn_unit(event, unit_type):
-        if check_click_position(event)==False:
+    def menu_change_name_option(popup_event):
+        if Cell.check_unit(event=popup_event)==False:
+            print("No unit to rename here")
             return
-        
-        else:
-            x,y = check_click_position(event)
-            print(f"Clicked cell ({x},{y})")
-
-            if Cell.check_unit(x, y)==True:
-                return
-            else:
-                if unit_type=="Warrior":
-                    Warrior(x, y)
-                elif unit_type=="Archer":
-                    Archer(x,y)
-
-    def despawn_unit(event):
-        if check_click_position(event)==False:
-            return
-        
-        else:
-            x,y = check_click_position(event)
-            print(f"Clicked ({x},{y})")
-
-            if Cell.check_unit(x, y)==True:
-                Cell.CEL_instance_list[x][y].frame.winfo_children()[0].destroy()        # Destroys the label
-                for i in range(len(Unit.UNI_instance_list)):
-                    if (Unit.UNI_instance_list[i].x, Unit.UNI_instance_list[i].y) == check_click_position(event):
-                        unit_to_remove = Unit.UNI_instance_list[i]
-                        Unit.UNI_instance_list.remove(unit_to_remove)
-                        print("Unit removed")
-                        return
-            else:
-                print("No unit to delete")
-        pass
-
-class Warrior(Unit):
-    Unit_HP = 3
-    Unit_DMG = 2
-    Unit_DEF = 1
-
-    WAR_instance_list=[]
-
-    def __init__(self, x, y, name="Warrior", unit_type="Warrior"):
-        super().__init__(x, y, unit_type, name)
-        self.label.configure(bg="Blue")
-        self.label.pack(fill="both", expand=True, padx=10, pady=10)
-        Warrior.WAR_instance_list.append(self)
-    def __str__(self):
-        return super().__str__()
-
-    def spawn_warrior(event):
-        if check_click_position(event)==False:
-            return
-        
-        else:
-            x,y = check_click_position(event)
-            print(f"Clicked cell ({x},{y})")
-
-            if Cell.check_unit(x, y)==True:
-                return
-            else:
-                Warrior(x, y)
-
-class Archer(Unit):
-    
-    Unit_HP = 3
-    Unit_DMG = 2
-    Unit_DEF = 0
-
-    ARC_instance_list=[]
-
-    def __init__(self, x, y, name="Archer", unit_type="Archer"):
-        super().__init__(x, y, unit_type, name)
-        self.label.configure(bg="Green")
-        self.label.pack(fill="both", expand=True, padx=10, pady=10)
-        Archer.ARC_instance_list.append(self)
-        
-    def __str__(self):
-        return super().__str__()
-
-    def spawn_archer(event):
-        if check_click_position(event)==False:
-            return
-        
-        else:
-            x,y = check_click_position(event)
-            print(f"Clicked cell ({x},{y})")
-
-            if Cell.check_unit(x, y)==True:
-                return
-            else:
-                Archer(x, y)
-
-#------------------------------------------
-
-def check_click_position(event):
-    for x in range(col_number):
-        for y in range(row_number):
-
-            current_cell=Cell.CEL_instance_list[x][y].frame
-
-            current_cell_x=current_cell.winfo_x()
-            current_cell_y=current_cell.winfo_y()
-
-            current_cell_width=current_cell.winfo_width()
-            current_cell_height=current_cell.winfo_height()
-
-            fen_x=fen.winfo_x()
-            fen_y=fen.winfo_y()
-
-            mouse_x=event.x_root - fen_x - 8
-            mouse_y=event.y_root - fen_y - 32
-
-            
-
-            if current_cell_x <= mouse_x <= current_cell_x+current_cell_width and current_cell_y <= mouse_y <= current_cell_y+current_cell_height:
-                return x,y
-            
-    print("No cell clicked")
-    return False
-
-
-#-----------------------------------------------------
 
 
 
+        toplevel_popup = tk.Toplevel(bg="#9C9C9C")
+        toplevel_popup.resizable(False, False)
+        toplevel_popup.geometry('+0+0')
+        toplevel_popup.title("Popup")
 
-def menu_warrior_spawn_option(popup_event):
-    Unit.spawn_unit(popup_event, "Warrior")
+        new_name_entry = tk.Entry(toplevel_popup, bg="#C4C4C4", highlightbackground="black", highlightthickness=2, highlightcolor="black", font="TkDefaultFont 20")
+        new_name_entry.pack(expand=True, fill="both", padx=5, pady=5)
 
-def menu_archer_spawn_option(popup_event):
-    Unit.spawn_unit(popup_event, "Archer")
-
-def menu_change_name_option(popup_event):
-    if Cell.check_unit(event=popup_event)==False:
-        print("No unit to rename here")
-        return
-
+        close_button=tk.Button(toplevel_popup, text="Confirm", command = lambda:Menu.close_popup_window(entry=new_name_entry, window=toplevel_popup))
+        close_button.pack(fill="both")
 
     def close_popup_window(entry, window):
         global entry_text
@@ -298,23 +185,110 @@ def menu_change_name_option(popup_event):
         else:
             print(f"New name is '{entry_text}'")
 
-            for i in range(len(Unit.UNI_instance_list)):
-                if (Unit.UNI_instance_list[i].x, Unit.UNI_instance_list[i].y) == check_click_position(popup_event):
+            for i in range(len(Unit.instance_list)):
+                if (Unit.instance_list[i].x, Unit.instance_list[i].y) == Cell.check_click_position(popup_event):
                     print("Got a match")
-                    Unit.UNI_instance_list[i].change_name(entry_text)
+                    Unit.instance_list[i].change_name(entry_text)
                     return
 
-    toplevel_popup = tk.Toplevel(bg="#9C9C9C")
-    toplevel_popup.resizable(False, False)
-    toplevel_popup.geometry('+0+0')
-    toplevel_popup.title("Popup")
 
-    new_name_entry = tk.Entry(toplevel_popup, bg="#C4C4C4", highlightbackground="black", highlightthickness=2, highlightcolor="black", font="TkDefaultFont 20")
-    new_name_entry.pack(expand=True, fill="both", padx=5, pady=5)
+    pass
 
-    close_button=tk.Button(toplevel_popup, text="Confirm", command = lambda:close_popup_window(entry=new_name_entry, window=toplevel_popup))
-    close_button.pack(fill="both")
+class Unit:
 
+    instance_list=[]
+
+    def __init__(self, x, y, unit_type, name):
+        self.x=x
+        self.y=y
+        self.unit_type = unit_type
+        self.name = name
+        window=Cell.instance_list[x][y].frame
+        
+        self.label = tk.Label(window, bg=unit_type_color[unit_type], text=str(unit_type))
+        self.label.pack(fill="both", expand=True, padx=10, pady=10)
+
+        globals()[unit_type].instance_list.append(self)
+        Unit.instance_list.append(self)
+        Cell.instance_list[x][y].update_unit_on_cell(self, add=True)
+        
+        pass
+
+    def __str__(self):
+        return f"########\nThis is a {self.unit_type}.\nHe's located in the cell {self.x,self.y}\nHis name is {self.name}.\nHP : {self.Unit_HP} / DMG : {self.Unit_DMG} / DEF : {self.Unit_DEF}\n########"
+        pass
+
+    def change_name(self, name):
+        self.name=name
+    
+    def spawn_unit(event, unit_type):
+        if Cell.check_click_position(event)==False:
+            return
+        else:
+            x,y = Cell.check_click_position(event)
+            print(f"Clicked cell ({x},{y})")
+
+        if Cell.check_unit(x, y)==True:
+            return
+
+        try:
+            globals()[unit_type](x, y)                      # Executes Warrior(x,y) if unit_type=="Warrior", etc...
+        except KeyError:
+            print("This kind of unit does not exist")
+            pass
+
+    def despawn_unit(event):
+        if Cell.check_click_position(event)==False:
+            return
+        x,y = Cell.check_click_position(event)
+
+        if Cell.check_unit(x, y)==True:
+            Cell.instance_list[x][y].frame.winfo_children()[0].destroy()        # Destroys the label
+
+            for i in range(len(Unit.instance_list)):
+                if (Unit.instance_list[i].x, Unit.instance_list[i].y) == Cell.check_click_position(event):
+                    unit_to_remove = Unit.instance_list[i]
+                    
+                    Cell.instance_list[x][y].update_unit_on_cell(unit_to_remove, add=False)
+                    Unit.instance_list.remove(unit_to_remove)
+                    print("Unit removed")
+                    return
+                
+        else:
+            print("No unit to delete")
+
+class Warrior(Unit):
+    Unit_HP = 3
+    Unit_DMG = 2
+    Unit_DEF = 1
+
+    instance_list=[]
+
+    def __init__(self, x, y, name="Warrior", unit_type="Warrior"):
+        super().__init__(x, y, unit_type, name)
+
+    def __str__(self):
+        return super().__str__()
+
+
+class Archer(Unit):
+    
+    Unit_HP = 3
+    Unit_DMG = 2
+    Unit_DEF = 0
+
+    instance_list=[]
+
+    def __init__(self, x, y, name="Archer", unit_type="Archer"):
+        super().__init__(x, y, unit_type, name)
+        
+    def __str__(self):
+        return super().__str__()
+
+#------------------------------------------
+
+
+#-----------------------------------------------------
 
 
 
@@ -327,6 +301,11 @@ for i in range(col_number):
 Cell.create_grid()
 Menu(fen)
 
+def a(event):
+    x,y = Cell.check_click_position(event)
+    print(Cell.instance_list[x][y])
+
+fen.bind("<Button-2>",a)
 fen.bind("<Button-3>",Menu.show_click_menu)
 
 fen.mainloop()
