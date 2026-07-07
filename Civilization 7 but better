@@ -1,18 +1,58 @@
 import tkinter as tk
-
-fen=tk.Tk()
-fen.title("Grille")
-fen.geometry("700x500+-5+0")
-fen.configure(bg="#7C7C7C",padx=5,pady=5)
-row_number = 5
-col_number = 5
+from collections import defaultdict
 
 unit_type_list=["Warrior", "Archer", "Scout"]
 unit_type_color={
     "Warrior" : "blue", 
-    "Archer" : "Green"
+    "Archer" : "Green",
+    "Scout" : "Purple"
     }
 
+#                  unit type   HP / DMG / DEF
+unit_type_stat = {"Warrior" : [3, 2, 1], 
+                  "Archer" : [3, 2, 0], 
+                  "Scout" : [1, 1, 1]}
+
+row_number = 5
+col_number = 5
+
+#-----------------------------------------
+
+class Main():
+    def __init__(self, row_number=5, col_number=5):
+        self.row_number=row_number
+        self.col_number=col_number
+
+        Main.configure_main_window(self)
+        Main.configure_grid(self)
+        Main.assign_bind(self)
+
+        Cell.create_grid(window=self.main_window)
+        Menu(self.main_window)
+        
+    def get_grid_size(self):
+        print(f"row {self.row_number}, col {self.col_number}")
+        return self.row_number, self.col_number
+        pass
+
+    def configure_main_window(self):
+        self.main_window=tk.Tk()
+        self.main_window.title("Grille")
+        self.main_window.geometry("700x500+-5+0")
+        self.main_window.configure(bg="#7C7C7C",padx=5,pady=5)
+        pass
+
+    def configure_grid(self):
+        for i in range (row_number):
+            self.main_window.grid_rowconfigure(i, weight=1,uniform=1)
+        for i in range(col_number):
+            self.main_window.grid_columnconfigure(i, weight=2,uniform=1)
+
+    def assign_bind(self):
+#        self.main_window.bind("<Button-2>",a)
+        self.main_window.bind("<Button-3>",Menu.show_click_menu)
+    
+    pass
 
 class Cell:
     instance_list=[[None for a in range(col_number)] for b in range(row_number)]
@@ -22,6 +62,7 @@ class Cell:
     city=False
 
     def __init__(self, window, x_coo, y_coo, color):
+        
         self.x_coo=x_coo
         self.y_coo=y_coo
         self.color=color
@@ -36,10 +77,10 @@ class Cell:
     def __str__(self):
         return f"This is the cell {self.x_coo},{self.y_coo}. There is the unit {self.unit_on_cell} here."
     
-    def create_grid():
+    def create_grid(window):
         for i in range(row_number):
             for j in range(col_number):
-                cell=Cell(window=fen, x_coo=i, y_coo=j, color="red")
+                cell=Cell(window=window, x_coo=i, y_coo=j, color="red")
                 Cell.instance_list[j][i]=cell
 
         pass
@@ -79,6 +120,8 @@ class Cell:
     def check_click_position(event):
         for x in range(col_number):
             for y in range(row_number):
+                main_window = main.__dict__["main_window"]
+
 
                 current_cell=Cell.instance_list[x][y].frame
 
@@ -88,11 +131,11 @@ class Cell:
                 current_cell_width=current_cell.winfo_width()
                 current_cell_height=current_cell.winfo_height()
 
-                fen_x=fen.winfo_x()
-                fen_y=fen.winfo_y()
+                main_window_x=main_window.winfo_x()
+                main_window_y=main_window.winfo_y()
 
-                mouse_x=event.x_root - fen_x - 8
-                mouse_y=event.y_root - fen_y - 32
+                mouse_x=event.x_root - main_window_x - 8
+                mouse_y=event.y_root - main_window_y - 32
 
             
 
@@ -199,6 +242,10 @@ class Unit:
     instance_list=[]
 
     def __init__(self, x, y, unit_type, name):
+        self.Unit_HP = unit_type_stat[unit_type][0]
+        self.Unit_DMG = unit_type_stat[unit_type][1]
+        self.Unit_DEF = unit_type_stat[unit_type][2]
+
         self.x=x
         self.y=y
         self.unit_type = unit_type
@@ -258,54 +305,40 @@ class Unit:
             print("No unit to delete")
 
 class Warrior(Unit):
-    Unit_HP = 3
-    Unit_DMG = 2
-    Unit_DEF = 1
 
     instance_list=[]
 
-    def __init__(self, x, y, name="Warrior", unit_type="Warrior"):
+    def __init__(self, x, y, unit_type="Warrior", name="Warrior"):
         super().__init__(x, y, unit_type, name)
 
     def __str__(self):
         return super().__str__()
 
-
 class Archer(Unit):
-    
-    Unit_HP = 3
-    Unit_DMG = 2
-    Unit_DEF = 0
 
     instance_list=[]
 
-    def __init__(self, x, y, name="Archer", unit_type="Archer"):
+    def __init__(self, x, y, unit_type="Archer", name="Archer"):
         super().__init__(x, y, unit_type, name)
         
     def __str__(self):
         return super().__str__()
 
-#------------------------------------------
+class Scout(Unit):
 
+    instance_list=[]
+
+    def __init__(self, x, y, name="Scout", unit_type="Scout"):
+        super().__init__(x, y, unit_type, name)
+
+    def __str__(self):
+        return super().__str__()
 
 #-----------------------------------------------------
 
 
 
+main=Main()
+print(main.__dict__)
 
-for i in range (row_number):
-    fen.grid_rowconfigure(i, weight=1,uniform=1)
-for i in range(col_number):
-    fen.grid_columnconfigure(i, weight=2,uniform=1)
-    
-Cell.create_grid()
-Menu(fen)
-
-def a(event):
-    x,y = Cell.check_click_position(event)
-    print(Cell.instance_list[x][y])
-
-fen.bind("<Button-2>",a)
-fen.bind("<Button-3>",Menu.show_click_menu)
-
-fen.mainloop()
+main.__dict__["main_window"].mainloop()
