@@ -1,5 +1,4 @@
 import tkinter as tk
-from collections import defaultdict
 
 unit_type_list=["Warrior", "Archer", "Scout"]
 unit_type_color={
@@ -13,49 +12,140 @@ unit_type_stat = {"Warrior" : [3, 2, 1],
                   "Archer" : [3, 2, 0], 
                   "Scout" : [1, 1, 1]}
 
-row_number = 5
-col_number = 5
 
-#-----------------------------------------
+class App(tk.Tk):
 
-class Main():
+    instance_list=[]
+
     def __init__(self, row_number=5, col_number=5):
+
+        App.instance_list.append(self)
+
+        tk.Tk.__init__(self)
+
+        self.create_menu_bar()
+        self.configure_main_window()
+        self.create_main_frame()
+
+        self.assign_bind()
+
+        self.create_popup_menu()
+
+        
+
+    def create_menu_bar(self):
+        menu_bar = tk.Menu(self)
+
+        menu_new_game = tk.Menu(menu_bar, tearoff=0)
+        menu_new_game.add_command(label="5x5", command= lambda : App.reset_grid(self =self, row_number=5, col_number=5))
+        menu_new_game.add_command(label="10x10", command= lambda : App.reset_grid(self =self, row_number=10, col_number=10))
+        menu_bar.add_cascade(label="Create a new grid", menu=menu_new_game)
+
+        self.config(menu=menu_bar)
+        
+    def configure_main_window(self):
+        self.title("Main App")
+        self.geometry("700x500+-5+0")
+        self.configure(bg="#7C7C7C")
+
+    def reset_grid(self, row_number, col_number):
         self.row_number=row_number
         self.col_number=col_number
+        if Cell.instance_list!=[]:
+            Unit.clear_all_units()                                      # The labels are destroyed when the frame is destroyed, but not the Unit.instance list. This does exactly that
+            self.destroy_main_frame()
+            self.create_main_frame()
+            self.create_popup_menu()
+        self.create_grid(row_number=row_number, col_number=col_number)
 
-        Main.configure_main_window(self)
-        Main.configure_grid(self)
-        Main.assign_bind(self)
+    def destroy_main_frame(self):
+        self.main_frame.destroy()
+        App.instance_list.pop(1)
 
-        Cell.create_grid(window=self.main_window)
-        Menu(self.main_window)
-        
-    def get_grid_size(self):
-        print(f"row {self.row_number}, col {self.col_number}")
-        return self.row_number, self.col_number
-        pass
-
-    def configure_main_window(self):
-        self.main_window=tk.Tk()
-        self.main_window.title("Grille")
-        self.main_window.geometry("700x500+-5+0")
-        self.main_window.configure(bg="#7C7C7C",padx=5,pady=5)
-        pass
-
-    def configure_grid(self):
+    def create_main_frame(self):
+        self.main_frame=tk.Frame(self)
+        self.main_frame.pack(fill="both", expand=True)
+        self.main_frame.configure(bg="#7C7C7C",padx=5,pady=5)
+        App.instance_list.append(self.main_frame)
+    
+    def create_grid(self, row_number, col_number):
         for i in range (row_number):
-            self.main_window.grid_rowconfigure(i, weight=1,uniform=1)
+            self.main_frame.grid_rowconfigure(i, weight=1, uniform=1)
         for i in range(col_number):
-            self.main_window.grid_columnconfigure(i, weight=2,uniform=1)
+            self.main_frame.grid_columnconfigure(i, weight=2, uniform=1)
+        Cell.create_grid(window=self.main_frame, row_number=row_number, col_number=col_number)
+
 
     def assign_bind(self):
-#        self.main_window.bind("<Button-2>",a)
-        self.main_window.bind("<Button-3>",Menu.show_click_menu)
+        self.bind("<Button-3>", lambda event : App.show_popup_menu(event=event, self=self))
+        self.bind("<Button-1>", Unit.clear_all_units)
+        #self.bind("<ButtonRelease-1>",lambda event: Unit.move_unit("release"))
+        pass
+        
+
+    def create_popup_menu(self):
+        self.main_popup_menu=tk.Menu(self.main_frame, tearoff=0)
+
+        self.spawn_menu = tk.Menu(self.main_popup_menu, tearoff=0)
+        self.main_popup_menu.add_cascade(label="Spawn a unit", menu = self.spawn_menu)
+        for i in unit_type_list:
+            self.spawn_menu.add_command(label=i, command = lambda i=i : Unit.spawn_unit(popup_event, i))
+
+        self.main_popup_menu.add_separator()
     
+
+        self.main_popup_menu.add_command(label="Change unit name", command = lambda : App.menu_change_name_option(popup_event))
+        self.main_popup_menu.add_command(label="Despawn unit", command = lambda : Unit.despawn_unit(popup_event))
+        self.main_popup_menu.add_command(label="See unit stats", command = lambda : Cell.get_cell_stat(popup_event))
+        pass
+    
+    def show_popup_menu(event, self):
+        global popup_event
+        popup_event = event
+
+        if Cell.check_click_position(event)==False:
+            return
+        self.main_popup_menu.tk_popup(event.x_root, event.y_root)
+        pass
+
+    def menu_change_name_option(popup_event):
+        if Cell.check_unit(event=popup_event)==False:
+            print("No unit to rename here")
+            return
+        
+        toplevel_popup = tk.Toplevel(bg="#9C9C9C")
+        toplevel_popup.resizable(False, False)
+        toplevel_popup.geometry('+0+0')
+        toplevel_popup.title("Popup")
+
+        new_name_entry = tk.Entry(toplevel_popup, bg="#C4C4C4", highlightbackground="black", highlightthickness=2, highlightcolor="black", font="TkDefaultFont 20")
+        new_name_entry.pack(expand=True, fill="both", padx=5, pady=5)
+
+        close_button=tk.Button(toplevel_popup, text="Confirm", command = lambda: App.close_popup_menu(new_name_entry, toplevel_popup))
+        close_button.pack(fill="both")
+
+    def close_popup_menu(entry, popup_window):
+        global entry_text
+        entry_text=entry.get()
+        popup_window.destroy()
+
+        if len(entry_text)==0:
+            print("No new name")
+
+        else:
+            print(f"New name is '{entry_text}'")
+
+            for i in range(len(Unit.instance_list)):
+                if (Unit.instance_list[i].x, Unit.instance_list[i].y) == Cell.check_click_position(popup_event):
+                    print("Got a match")
+                    Unit.instance_list[i].change_name(entry_text)
+                    return
+
     pass
 
 class Cell:
-    instance_list=[[None for a in range(col_number)] for b in range(row_number)]
+
+    instance_list=[]
 
     terrain=None
     country=None
@@ -77,12 +167,16 @@ class Cell:
     def __str__(self):
         return f"This is the cell {self.x_coo},{self.y_coo}. There is the unit {self.unit_on_cell} here."
     
-    def create_grid(window):
+    def create_grid(window, row_number, col_number):
+        if Cell.instance_list!=[]:
+            for i in Cell.instance_list:
+                for j in i:
+                    j.frame.destroy()
+
+        Cell.instance_list=[[None for a in range(col_number)] for b in range(row_number)]
         for i in range(row_number):
             for j in range(col_number):
-                cell=Cell(window=window, x_coo=i, y_coo=j, color="red")
-                Cell.instance_list[j][i]=cell
-
+                Cell.instance_list[j][i]=Cell(window=window, x_coo=i, y_coo=j, color="red")
         pass
     
     def change_terrain(self, terrain):
@@ -118,10 +212,13 @@ class Cell:
             return True
         
     def check_click_position(event):
-        for x in range(col_number):
-            for y in range(row_number):
-                main_window = main.__dict__["main_window"]
+        if len(Cell.instance_list)==0:
+            print("No grid yet")
+            return False
 
+
+        for x in range(window.col_number):
+            for y in range(window.row_number):
 
                 current_cell=Cell.instance_list[x][y].frame
 
@@ -130,14 +227,12 @@ class Cell:
 
                 current_cell_width=current_cell.winfo_width()
                 current_cell_height=current_cell.winfo_height()
-
-                main_window_x=main_window.winfo_x()
-                main_window_y=main_window.winfo_y()
-
-                mouse_x=event.x_root - main_window_x - 8
-                mouse_y=event.y_root - main_window_y - 32
-
-            
+                
+                window_x=App.instance_list[1].winfo_rootx()                                 # Gives position of top left corner of main frame
+                window_y=App.instance_list[1].winfo_rooty()                                 # It's necessary to compensate mouse_x and mouse_y position (weird but works)
+                
+                mouse_x=event.x_root - window_x
+                mouse_y=event.y_root - window_y
 
                 if current_cell_x <= mouse_x <= current_cell_x+current_cell_width and current_cell_y <= mouse_y <= current_cell_y+current_cell_height:
                     return x,y
@@ -161,84 +256,7 @@ class Cell:
                 print("No unit to show stat")
             return
 
-class Menu:
-    instance_list=[]
-
-    def __init__(self, window):
-        self.main_menu=tk.Menu(window, tearoff=0)
-        self.instance_list.append(self.main_menu)
-
-        Menu.create_popup_menu(self)
-        
-    def create_popup_menu(self):
-        Menu.add_submenus(self, self.main_menu)
-        Menu.add_opt(self)
-
-    def add_submenus(self, submenu):
-        self.submenu=submenu
-        self.submenu = tk.Menu(self.main_menu, tearoff=0)
-        self.instance_list.append(self.submenu)
-
-        self.main_menu.add_cascade(label="Spawn a unit", menu = self.submenu)
-        self.main_menu.add_separator()
-    
-    def add_opt(self):
-        
-        for i in unit_type_list:
-            self.submenu.add_command(label=i, command = lambda i=i : Unit.spawn_unit(popup_event, i))
-            
-        self.main_menu.add_command(label="Change unit name", command = lambda : Menu.menu_change_name_option(popup_event))
-        self.main_menu.add_command(label="Despawn unit", command = lambda : Unit.despawn_unit(popup_event))
-        self.main_menu.add_command(label="Se unit stats", command = lambda : Cell.get_cell_stat(popup_event))
-
-    def show_click_menu(event):
-        if Cell.check_click_position(event)==False:
-            return
-
-        global popup_event
-        popup_event = event
-        Menu.instance_list[0].tk_popup(event.x_root, event.y_root)
-        pass
-
-    def menu_change_name_option(popup_event):
-        if Cell.check_unit(event=popup_event)==False:
-            print("No unit to rename here")
-            return
-
-
-
-        toplevel_popup = tk.Toplevel(bg="#9C9C9C")
-        toplevel_popup.resizable(False, False)
-        toplevel_popup.geometry('+0+0')
-        toplevel_popup.title("Popup")
-
-        new_name_entry = tk.Entry(toplevel_popup, bg="#C4C4C4", highlightbackground="black", highlightthickness=2, highlightcolor="black", font="TkDefaultFont 20")
-        new_name_entry.pack(expand=True, fill="both", padx=5, pady=5)
-
-        close_button=tk.Button(toplevel_popup, text="Confirm", command = lambda:Menu.close_popup_window(entry=new_name_entry, window=toplevel_popup))
-        close_button.pack(fill="both")
-
-    def close_popup_window(entry, window):
-        global entry_text
-        entry_text=entry.get()
-        window.destroy()
-        if len(entry_text)==0:
-            print("No new name")
-
-        else:
-            print(f"New name is '{entry_text}'")
-
-            for i in range(len(Unit.instance_list)):
-                if (Unit.instance_list[i].x, Unit.instance_list[i].y) == Cell.check_click_position(popup_event):
-                    print("Got a match")
-                    Unit.instance_list[i].change_name(entry_text)
-                    return
-
-
-    pass
-
 class Unit:
-
     instance_list=[]
 
     def __init__(self, x, y, unit_type, name):
@@ -288,21 +306,62 @@ class Unit:
         if Cell.check_click_position(event)==False:
             return
         x,y = Cell.check_click_position(event)
-
-        if Cell.check_unit(x, y)==True:
-            Cell.instance_list[x][y].frame.winfo_children()[0].destroy()        # Destroys the label
-
+        if Cell.check_unit(x,y)==True:
             for i in range(len(Unit.instance_list)):
                 if (Unit.instance_list[i].x, Unit.instance_list[i].y) == Cell.check_click_position(event):
                     unit_to_remove = Unit.instance_list[i]
-                    
+                    unit_to_remove.label.destroy()
+
                     Cell.instance_list[x][y].update_unit_on_cell(unit_to_remove, add=False)
                     Unit.instance_list.remove(unit_to_remove)
                     print("Unit removed")
-                    return
                 
         else:
             print("No unit to delete")
+
+    def clear_all_units(event=None):
+        for i in Unit.instance_list:
+            i.label.destroy()
+            Unit.instance_list.remove(i)
+
+    def move_unit(event, action):
+        
+        if Cell.check_click_position(event=event)==False:
+            return
+        else:
+            x,y=Cell.check_click_position(event=event)
+
+        if Cell.check_unit(event=event)==False:
+            print("No unit to move")
+            return
+        else:
+            selected_unit=Cell.instance_list[x][y].__dict__["unit_on_cell"][0]
+            print(selected_unit)
+            
+        available_moves=[]
+
+        for i in range(-1,+2):
+            if Cell.check_unit(x+i, y)==False and x+i>=0:
+                available_moves.append([x + i, y])
+            if Cell.check_unit(x, y+i)==False and y+i>=0:
+                available_moves.append([x, y+i])
+        while [x, y] in available_moves:
+            available_moves.remove([x,y])
+
+        for i in available_moves:
+            new_x=i[0]
+            new_y=i[1]
+            print(Cell.instance_list[new_x][new_y])
+
+
+        print(available_moves)
+        
+        # Remove unit
+
+        # Add_unit
+
+        pass
+
 
 class Warrior(Unit):
 
@@ -334,11 +393,8 @@ class Scout(Unit):
     def __str__(self):
         return super().__str__()
 
-#-----------------------------------------------------
+def a(event):
+    print("a works")
 
-
-
-main=Main()
-print(main.__dict__)
-
-main.__dict__["main_window"].mainloop()
+window = App()
+window.mainloop()
